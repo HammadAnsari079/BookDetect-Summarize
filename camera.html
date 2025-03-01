@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Capture - Book Scanner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="card shadow-lg">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0">Camera Capture</h2>
+                    <a href="{{ url_for('index') }}" class="btn btn-light">Back to Home</a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <div class="camera-container">
+                            <video id="video" class="w-100 border" autoplay></video>
+                            <button id="capture-btn" class="btn btn-primary mt-2 w-100">
+                                <i class="bi bi-camera"></i> Capture Image
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="preview-container text-center">
+                            <h4>Preview</h4>
+                            <canvas id="canvas" class="w-100 border"></canvas>
+                            <form id="capture-form" action="{{ url_for('process_camera') }}" method="post" class="mt-3">
+                                <input type="hidden" name="image_data" id="image-data">
+                                <button type="submit" id="submit-btn" class="btn btn-success w-100" disabled>
+                                    Process Image
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="camera-instructions mt-3 p-3 bg-light rounded">
+                    <h4>Instructions:</h4>
+                    <ol>
+                        <li>Position the book cover in front of your camera</li>
+                        <li>Make sure the title is clearly visible</li>
+                        <li>Click "Capture Image" to take a photo</li>
+                        <li>If the preview looks good, click "Process Image"</li>
+                        <li>If not, click "Capture Image" again to retake</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Camera functionality
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureBtn = document.getElementById('capture-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const imageData = document.getElementById('image-data');
+        const context = canvas.getContext('2d');
+        let stream = null;
+
+        // Start camera
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'environment' 
+                    } 
+                });
+                video.srcObject = stream;
+                
+                // Set canvas size based on video dimensions
+                video.onloadedmetadata = () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                };
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                alert('Could not access the camera. Please check your permissions and try again.');
+            }
+        }
+
+        // Capture image
+        captureBtn.addEventListener('click', () => {
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            imageData.value = canvas.toDataURL('image/jpeg');
+            submitBtn.disabled = false;
+        });
+
+        // Start camera when page loads
+        window.addEventListener('load', startCamera);
+
+        // Clean up when leaving the page
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>
